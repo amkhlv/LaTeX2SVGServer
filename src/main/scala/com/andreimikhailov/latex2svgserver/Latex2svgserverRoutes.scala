@@ -15,6 +15,7 @@ import org.http4s.Header
 import cats.Applicative
 import org.jbibtex.{BibTeXDatabase, BibTeXEntry, Key}
 import scala.jdk.CollectionConverters._
+import org.http4s.dsl.impl.QueryParamDecoderMatcher
 
 object Latex2svgserverRoutes {
 
@@ -63,35 +64,34 @@ object Latex2svgserverRoutes {
     }
   }
 
-  final case class BibTeXForm(token: String, k: String)
-  object BibTeXForm {
-    implicit val decoderBibTeXForm: Decoder[BibTeXForm] = deriveDecoder[BibTeXForm]
-    implicit def entityDecoderBibTeXForm[F[_]: Sync]: EntityDecoder[F, BibTeXForm] = jsonOf
-    implicit val encoderBibTeXForm: Encoder[BibTeXForm] = deriveEncoder[BibTeXForm]
-    implicit def entityEncoderBibTeXForm[F[_]: Applicative]: EntityEncoder[F, BibTeXForm] = jsonEncoderOf
-  }
+//  final case class BibTeXForm(token: String, k: String)
+//  object BibTeXForm {
+//    implicit val decoderBibTeXForm: Decoder[BibTeXForm] = deriveDecoder[BibTeXForm]
+//    implicit def entityDecoderBibTeXForm[F[_]: Sync]: EntityDecoder[F, BibTeXForm] = jsonOf
+//    implicit val encoderBibTeXForm: Encoder[BibTeXForm] = deriveEncoder[BibTeXForm]
+//    implicit def entityEncoderBibTeXForm[F[_]: Applicative]: EntityEncoder[F, BibTeXForm] = jsonEncoderOf
+//  }
+  object TokenQueryParamMatcher extends QueryParamDecoderMatcher[String]("token")
+  object KeyQueryParamMatcher extends QueryParamDecoderMatcher[String]("k")
   def bibtexRoutes[F[_]: Sync](token: String, btdb: BibTeXDatabase): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     HttpRoutes.of[F] {
-      case req @ POST -> Root/"bibtex" => if (req.headers.exists(_.toString().equals("BystroTeX: yes"))) {
-        req.decode[BibTeXForm](
-          b => {
-            if (b.token == token) {
-              val entry: BibTeXEntry = btdb.resolveEntry(new Key(b.k))
-              val fields = entry.getFields
-              val fsset: Set[Key] = fields.keySet().asScala.toSet
-              val fs: List[(Key, String)] = for (i <- fsset.toList) yield { i -> fields.get(i).toUserString }
-              val marshalled = <bibentry>{for ((a,b) <- fs) yield <v key={a.getValue}>{b}</v>}</bibentry>
-              val printer = new scala.xml.PrettyPrinter(80, 2)
-              Ok(printer.format(marshalled))
-                .map(_.withContentType(`Content-Type`(MediaType.text.plain)))
-            } else Forbidden("CSRF detected")
-          }
-          )
-      } else {
-        Forbidden("foreign origin threat detected")
-      }
+      case req @ POST -> Root / "bibtex" :? TokenQueryParamMatcher(t) +& KeyQueryParamMatcher(k) => 
+        if (req.headers.exists(_.toString().equals("BystroTeX: yes"))) {
+          if (t == token) {
+            val entry: BibTeXEntry = btdb.resolveEntry(new Key(k))
+            val fields = entry.getFields
+            val fsset: Set[Key] = fields.keySet().asScala.toSet
+            val fs: List[(Key, String)] = for (i <- fsset.toList) yield { i -> fields.get(i).toUserString }
+            val marshalled = <bibentry>{for ((a,b) <- fs) yield <v key={a.getValue}>{b}</v>}</bibentry>
+            val printer = new scala.xml.PrettyPrinter(80, 2)
+            Ok(printer.format(marshalled))
+              .map(_.withContentType(`Content-Type`(MediaType.text.plain)))
+          } else Forbidden("CSRF detected")
+        } else {
+          Forbidden("foreign origin threat detected")
+        }
     }
   }
 
