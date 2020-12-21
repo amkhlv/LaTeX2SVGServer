@@ -1,0 +1,9 @@
+project/
+target/
+.bloop/
+.bsp/
+.metals/
+*.html
+latex2svg.xml
+*.jar
+
