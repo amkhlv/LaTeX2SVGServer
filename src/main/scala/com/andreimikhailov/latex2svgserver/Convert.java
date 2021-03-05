@@ -8,7 +8,6 @@ import java.io.*;
 import javax.swing.JLabel;
 
 import org.scilab.forge.jlatexmath.*;
-
 import org.scilab.forge.jlatexmath.cyrillic.CyrillicRegistration;
 import org.scilab.forge.jlatexmath.greek.GreekRegistration;
 
@@ -58,6 +57,7 @@ public class Convert {
         DefaultTeXFont.registerAlphabet(new GreekRegistration());
 
 
+        try {
         TeXFormula formula = new TeXFormula(latex);
         //TeXIcon icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, size);
         TeXIcon icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, size, TeXFormula.SANSSERIF);
@@ -88,6 +88,9 @@ public class Convert {
         baos.close();
         String svgstring = new String( baos.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
         return new FormulaSVG(svgstring, depth, height, false, false, "");
+        } catch(ParseException e) {
+                    return new FormulaSVG("",0,0,true,false,e.getMessage());
+        }
 
         //org.dom4j.io.DOMReader reader = new DOMReader();
         //org.dom4j.Document document4j = reader.read(g2.getDOMFactory());
