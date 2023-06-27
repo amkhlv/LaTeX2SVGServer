@@ -14,8 +14,10 @@ import org.http4s.circe._
 import org.http4s.Header
 import cats.Applicative
 import org.jbibtex.{BibTeXDatabase, BibTeXEntry, Key}
+
 import scala.jdk.CollectionConverters._
 import org.http4s.dsl.impl.QueryParamDecoderMatcher
+import org.json4s.jackson.JsonMethods.{compact,render}
 
 object Latex2svgserverRoutes {
 
@@ -89,6 +91,18 @@ object Latex2svgserverRoutes {
             Ok(printer.format(marshalled))
               .map(_.withContentType(`Content-Type`(MediaType.text.plain)))
           } else Forbidden("CSRF detected")
+        } else {
+          Forbidden("foreign origin threat detected")
+        }
+      case req @ GET -> Root / "bibtexjs" :? KeyQueryParamMatcher(k) =>
+        if (req.headers.exists(_.toString().equals("BystroTeX: yes"))) {
+          import org.json4s.JsonDSL._
+          val entry: BibTeXEntry = btdb.resolveEntry(new Key(k))
+          val fields = entry.getFields
+          val fsset: Set[Key] = fields.keySet().asScala.toSet
+          val fs: Map[String, String] = (for (i <- fsset.toList) yield { i.getValue -> fields.get(i).toUserString }).toMap
+          val json = compact(render(fs))
+          Ok(json)
         } else {
           Forbidden("foreign origin threat detected")
         }
