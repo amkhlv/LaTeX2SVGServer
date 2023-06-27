@@ -2,6 +2,7 @@ val Http4sVersion = "0.21.11"
 val CirceVersion = "0.13.0"
 val Specs2Version = "4.10.5"
 val LogbackVersion = "1.2.3"
+val Json4sVersion = "4.0.3"
 
 lazy val root = (project in file("."))
   .settings(
@@ -27,6 +28,8 @@ lazy val root = (project in file("."))
       "io.circe"        %% "circe-parser"        % CirceVersion,
       "com.typesafe"    % "config"               % "1.4.1",
       "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
+      "org.json4s" %% "json4s-native" % Json4sVersion,
+      "org.json4s" %% "json4s-jackson"% Json4sVersion,
       "com.google.code.findbugs" % "jsr305" % "3.0.2" % Optional
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.10.3"),
